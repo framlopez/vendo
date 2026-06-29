@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vendo — Equipos y gadgets usados</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #ebebeb; color: #111; }
+
+    header {
+      background: #fff;
+      border-bottom: 1px solid #e0e0e0;
+      padding: 22px 20px 18px;
+      text-align: center;
+    }
+    header h1 { font-size: 1.35rem; font-weight: 700; letter-spacing: -0.3px; }
+    header p { margin-top: 5px; color: #777; font-size: 0.85rem; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      padding: 16px 12px;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    /* ── Card ── */
+    .card {
+      background: #fff;
+      border-radius: 6px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      display: flex;
+      flex-direction: column;
+      cursor: pointer;
+      transition: box-shadow 0.15s;
+    }
+    .card:hover { box-shadow: 0 4px 14px rgba(0,0,0,0.13); }
+
+    /* ── Gallery (square) ── */
+    .gallery {
+      position: relative;
+      background: #f7f7f7;
+      aspect-ratio: 1/1;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .gallery img {
+      position: absolute; inset: 0; width: 100%; height: 100%;
+      object-fit: cover; opacity: 0; transition: opacity 0.2s;
+      pointer-events: none;
+    }
+    .gallery img.active { opacity: 1; }
+
+    .g-nav {
+      position: absolute; top: 0; bottom: 0;
+      display: flex; align-items: center;
+      opacity: 0; transition: opacity 0.15s;
+    }
+    .card:hover .g-nav { opacity: 1; }
+    .g-nav.left { left: 0; padding-left: 6px; }
+    .g-nav.right { right: 0; padding-right: 6px; }
+    .g-nav button {
+      background: rgba(255,255,255,0.92); border: none; border-radius: 50%;
+      width: 30px; height: 30px; cursor: pointer; font-size: 0.95rem;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+    }
+    .g-dots {
+      position: absolute; bottom: 7px; left: 0; right: 0;
+      display: flex; justify-content: center; gap: 4px; pointer-events: none;
+    }
+    .g-dot {
+      width: 5px; height: 5px; border-radius: 50%;
+      background: rgba(255,255,255,0.5);
+      transition: background 0.15s;
+    }
+    .g-dot.active { background: #fff; }
+    .gallery.single .g-nav,
+    .gallery.single .g-dots { display: none; }
+
+    .g-hint {
+      position: absolute; bottom: 9px; left: 50%; transform: translateX(-50%);
+      background: rgba(0,0,0,0.48); color: #fff;
+      font-size: 0.68rem; padding: 3px 10px; border-radius: 99px;
+      pointer-events: none; white-space: nowrap;
+      transition: opacity 0.2s;
+    }
+    .card:hover .g-hint { opacity: 0; }
+
+    /* Expand icon */
+    .g-expand {
+      position: absolute; top: 7px; right: 7px;
+      background: rgba(0,0,0,0.35); border: none; color: #fff;
+      width: 26px; height: 26px; border-radius: 4px; cursor: pointer;
+      font-size: 0.75rem; display: flex; align-items: center; justify-content: center;
+      opacity: 0; transition: opacity 0.15s; pointer-events: all;
+    }
+    .card:hover .g-expand { opacity: 1; }
+
+    /* ── Card body ── */
+    .body { padding: 12px 12px 14px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+
+    .price { font-size: 1.3rem; font-weight: 700; color: #111; line-height: 1; }
+
+    .name { font-size: 0.82rem; color: #333; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+    .badge {
+      display: inline-block; font-size: 0.65rem; font-weight: 600;
+      padding: 2px 7px; border-radius: 99px; align-self: flex-start;
+    }
+    .badge-great { background: #e8f0fe; color: #1a56db; }
+    .badge-good  { background: #e6f4ea; color: #1e7e34; }
+
+    .desc { font-size: 0.78rem; color: #444; line-height: 1.5; }
+    .condition { font-size: 0.78rem; color: #555; line-height: 1.5; padding-top: 5px; border-top: 1px solid #f0f0f0; }
+    .condition strong { color: #111; font-weight: 600; }
+
+    .cta {
+      display: block; margin-top: auto;
+      background: #25D366; color: #fff; text-align: center;
+      text-decoration: none; font-weight: 600; font-size: 0.82rem;
+      padding: 9px 12px; border-radius: 6px;
+      transition: background 0.15s;
+    }
+    .cta:hover { background: #1ebe5d; }
+
+    footer {
+      text-align: center; padding: 28px 16px 36px;
+      font-size: 0.78rem; color: #aaa;
+      border-top: 1px solid #ddd; margin-top: 4px;
+      background: #fff;
+    }
+
+    /* ── Lightbox ── */
+    .lb {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.92); z-index: 999;
+      align-items: center; justify-content: center;
+    }
+    .lb.open { display: flex; }
+    .lb-bg { position: fixed; inset: 0; cursor: zoom-out; }
+    .lb-wrap { position: relative; z-index: 1; display: flex; align-items: center; justify-content: center; }
+    .lb-wrap img { max-width: 92vw; max-height: 88vh; object-fit: contain; border-radius: 4px; display: block; }
+    .lb-close {
+      position: fixed; top: 14px; right: 16px; background: rgba(255,255,255,0.15);
+      border: none; color: #fff; width: 36px; height: 36px; border-radius: 50%;
+      font-size: 1.1rem; cursor: pointer; display: flex; align-items: center;
+      justify-content: center; z-index: 2;
+    }
+    .lb-arrow {
+      position: fixed; top: 50%; transform: translateY(-50%);
+      background: rgba(255,255,255,0.15); border: none; color: #fff;
+      font-size: 1.6rem; width: 44px; height: 54px; cursor: pointer;
+      border-radius: 8px; display: flex; align-items: center; justify-content: center; z-index: 2;
+    }
+    .lb-arrow.prev { left: 10px; }
+    .lb-arrow.next { right: 10px; }
+    .lb-ctr {
+      position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%);
+      color: rgba(255,255,255,0.55); font-size: 0.78rem; z-index: 2;
+    }
+
+    @media (max-width: 768px) {
+      .grid { grid-template-columns: 1fr; gap: 10px; padding: 10px 12px; }
+      .price { font-size: 1.1rem; }
+      .name { font-size: 0.78rem; }
+      .body { padding: 10px 10px 12px; gap: 5px; }
+      .cta { font-size: 0.8rem; padding: 8px 10px; }
+      .g-nav { opacity: 1; }
+      .g-expand { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Vendo equipos y gadgets</h1>
+  <p>Todo usado · Excelente estado</p>
+</header>
+
+<div class="grid" id="grid"></div>
+
+<footer>
+  <p style="margin-bottom:12px; color:#555; font-size:0.88rem;">¿Te interesa algo? Escribime directamente</p>
+  <a href="https://wa.me/5491165582894" target="_blank"
+     style="display:inline-block;background:#25D366;color:#fff;text-decoration:none;font-weight:600;font-size:0.92rem;padding:11px 26px;border-radius:99px;">
+    💬 Contactate por WhatsApp
+  </a>
+</footer>
+
+<!-- Lightbox -->
+<div class="lb" id="lb">
+  <div class="lb-bg" onclick="closeLb()"></div>
+  <button class="lb-close" onclick="closeLb()">✕</button>
+  <button class="lb-arrow prev" onclick="lbNav(-1)">‹</button>
+  <div class="lb-wrap"><img id="lb-img" src="" alt="" /></div>
+  <button class="lb-arrow next" onclick="lbNav(1)">›</button>
+  <span class="lb-ctr" id="lb-ctr"></span>
+</div>
+
+<script>
+const WP = "5491165582894";
+function enc(p) { return p.split('/').map(encodeURIComponent).join('/'); }
+
+const products = [
+  {
+    name: "iMac 24\" Retina 4.5K — Chip M4",
+    price: "$2.500.000",
+    badge: "great", badgeText: "Como nuevo",
+    desc: "iMac de 24\" con pantalla Retina 4.5K, chip M4, 16 GB RAM, 256 GB SSD. Color Plata.",
+    condition: "Usado con cuidado y se nota. Pantalla, teclado, mouse y cables en perfecto estado, sin una marca. No tiene caja pero viene con todo lo original.",
+    images: [
+      "Imac 24 Retina 4.5k M4 10 Cpu 10 Gpu 16gb 256gb Ssd - Pla/WhatsApp Image 2026-06-29 at 13.07.13.jpeg",
+      "Imac 24 Retina 4.5k M4 10 Cpu 10 Gpu 16gb 256gb Ssd - Pla/WhatsApp Image 2026-06-29 at 13.07.14.jpeg",
+      "Imac 24 Retina 4.5k M4 10 Cpu 10 Gpu 16gb 256gb Ssd - Pla/WhatsApp Image 2026-06-29 at 13.07.142.jpeg",
+      "Imac 24 Retina 4.5k M4 10 Cpu 10 Gpu 16gb 256gb Ssd - Pla/imac-screenshot-1.png",
+      "Imac 24 Retina 4.5k M4 10 Cpu 10 Gpu 16gb 256gb Ssd - Pla/imac-screenshot-2.png",
+    ]
+  },
+  {
+    name: "Nintendo Switch 2",
+    price: "$450.000",
+    badge: "great", badgeText: "Como nuevo",
+    desc: "Consola híbrida de nueva generación. Portátil, sobremesa y TV. Joy-Con magnéticos.",
+    condition: "Literalmente casi no se usó. Como mucho un mes de juego desde que la compré. Está como el primer día, con todos sus accesorios.",
+    images: [
+      "Nintendo Switch 2 System/WhatsApp Image 2026-06-29 at 13.32.14.jpeg",
+      "Nintendo Switch 2 System/WhatsApp Image 2026-06-29 at 13.32.14 (1).jpeg",
+      "Nintendo Switch 2 System/WhatsApp Image 2026-06-29 at 13.32.14 (2).jpeg",
+      "Nintendo Switch 2 System/WhatsApp Image 2026-06-29 at 13.32.14 (3).jpeg",
+    ]
+  },
+  {
+    name: "DJI Mic — Micrófonos Omnidireccionales",
+    price: "$200.000",
+    badge: "great", badgeText: "Como nuevo",
+    desc: "Kit de 2 transmisores + 1 receptor inalámbrico. Audio profesional para video y streaming.",
+    condition: "Prácticamente sin estrenar. Salió pocas veces de la caja y funciona de maravilla. Viene completo con la caja de carga y todos los accesorios originales.",
+    images: [
+      "Micrófonos DJI MiC Omnidireccional color negro/WhatsApp Image 2026-06-29 at 12.56.18.jpeg",
+      "Micrófonos DJI MiC Omnidireccional color negro/WhatsApp Image 2026-06-29 at 12.56.18 (1).jpeg",
+      "Micrófonos DJI MiC Omnidireccional color negro/WhatsApp Image 2026-06-29 at 12.56.18 (2).jpeg",
+      "Micrófonos DJI MiC Omnidireccional color negro/WhatsApp Image 2026-06-29 at 13.38.36.jpeg",
+      "Micrófonos DJI MiC Omnidireccional color negro/WhatsApp Image 2026-06-29 at 13.38.37.jpeg",
+      "Micrófonos DJI MiC Omnidireccional color negro/WhatsApp Image 2026-06-29 at 13.38.37 (1).jpeg",
+    ]
+  },
+  {
+    name: "Apple Pencil 2da Generación",
+    price: "$100.000",
+    badge: "great", badgeText: "Como nuevo",
+    desc: "Compatible con iPad Pro y Air. Carga magnética, cambio de modo con doble toque.",
+    condition: "Apenas se usó. Sin marcas, responde perfecto al tacto.",
+    images: [
+      "Apple Pencil 2da Generación Color Blanco/D_NQ_NP_2X_941451-MLA74177098351_012024-F.webp",
+    ]
+  },
+  {
+    name: "Funda con Teclado — iPad Pro 11\"",
+    price: "$80.000",
+    badge: "great", badgeText: "Como nuevo",
+    desc: "Funda inteligente con teclado integrado para iPad Pro 11\". Smart Connector, sin Bluetooth.",
+    condition: "Prácticamente sin uso. Está impecable.",
+    images: [
+      "Funda Inteligente Con Teclado Para iPad Pro 11 /WhatsApp Image 2026-06-29 at 12.56.18.jpeg",
+    ]
+  },
+  {
+    name: "Trípode Eucos — Celular y GoPro",
+    price: "$60.000",
+    badge: "great", badgeText: "Como nuevo",
+    desc: "Trípode flexible y extensible. Compatible con celulares y GoPro. Color blanco.",
+    condition: "Muy bien cuidado, prácticamente sin uso. En perfecto estado.",
+    images: [
+      "Tripode Eucos Para Celular Y Gopro Blanco/D_NQ_NP_975443-CBT106928956107_022026-O.webp",
+    ]
+  },
+  {
+    name: "Cafetera Philips 5500 LatteGo",
+    price: "$1.700.000",
+    badge: "good", badgeText: "Buen estado",
+    desc: "Superautomática con sistema LatteGo. Muele, prepara y limpia sola. Un toque para café con leche.",
+    condition: "De uso diario durante un tiempo, pero siempre bien mantenida. Funciona como el primer día. Incluye todos los accesorios originales.",
+    images: [
+      "Cafetera Espresso Automática Philips 5500 Lattego Ep544:50/WhatsApp Image 2026-06-29 at 13.22.42.jpeg",
+      "Cafetera Espresso Automática Philips 5500 Lattego Ep544:50/WhatsApp Image 2026-06-29 at 13.22.421.jpeg",
+      "Cafetera Espresso Automática Philips 5500 Lattego Ep544:50/WhatsApp Image 2026-06-29 at 13.22.422.jpeg",
+      "Cafetera Espresso Automática Philips 5500 Lattego Ep544:50/WhatsApp Image 2026-06-29 at 13.22.43 (1).jpeg",
+      "Cafetera Espresso Automática Philips 5500 Lattego Ep544:50/WhatsApp Image 2026-06-29 at 13.22.43 (2).jpeg",
+      "Cafetera Espresso Automática Philips 5500 Lattego Ep544:50/WhatsApp Image 2026-06-29 at 13.22.43.jpeg",
+    ]
+  },
+  {
+    name: "MacBook Pro 13\" — Chip M1",
+    price: "$1.500.000",
+    badge: "good", badgeText: "Buen estado",
+    desc: "Chip Apple M1, 512 GB SSD. Pantalla Retina, batería y rendimiento excelentes.",
+    condition: "Fue mi compañera de trabajo varios años, así que tiene el desgaste esperable en la tapa. Por dentro —pantalla, teclado y batería— todo impecable y funciona genial.",
+    images: [
+      "Macbook Pro 13'' Con Chip M1 512 Gb Apple/WhatsApp Image 2026-06-29 at 13.28.22.jpeg",
+      "Macbook Pro 13'' Con Chip M1 512 Gb Apple/WhatsApp Image 2026-06-29 at 13.28.22 (1).jpeg",
+      "Macbook Pro 13'' Con Chip M1 512 Gb Apple/WhatsApp Image 2026-06-29 at 13.28.23.jpeg",
+      "Macbook Pro 13'' Con Chip M1 512 Gb Apple/WhatsApp Image 2026-06-29 at 13.28.23 (1).jpeg",
+      "Macbook Pro 13'' Con Chip M1 512 Gb Apple/WhatsApp Image 2026-06-29 at 13.28.23 (2).jpeg",
+      "Macbook Pro 13'' Con Chip M1 512 Gb Apple/WhatsApp Image 2026-06-29 at 13.28.23 (3).jpeg",
+    ]
+  },
+  {
+    name: "iRobot Roomba J7+",
+    price: "$1.000.000",
+    badge: "good", badgeText: "Buen estado",
+    desc: "Aspiradora robot con base de vaciado automático, detección de obstáculos y Wi-Fi.",
+    condition: "Poco uso real. Funciona perfecto, con su base de carga incluida.",
+    images: [
+      "iRobot Roomba J7+ aspiradora robot inteligente color negro/WhatsApp Image 2026-06-29 at 13.22.43.jpeg",
+      "iRobot Roomba J7+ aspiradora robot inteligente color negro/WhatsApp Image 2026-06-29 at 13.22.43 (1).jpeg",
+      "iRobot Roomba J7+ aspiradora robot inteligente color negro/WhatsApp Image 2026-06-29 at 13.22.44.jpeg",
+    ]
+  },
+  {
+    name: "iRobot Braava Jet M6",
+    price: "$400.000",
+    badge: "good", badgeText: "Buen estado",
+    desc: "Robot trapeador con Wi-Fi y mapeo inteligente. Ideal en combo con el Roomba.",
+    condition: "Misma historia que el Roomba: poco uso y en perfecto estado de funcionamiento.",
+    images: [
+      "Irobot Braava Jet M6 Trapeadora Wi Fi /WhatsApp Image 2026-06-29 at 13.22.43.jpeg",
+      "Irobot Braava Jet M6 Trapeadora Wi Fi /WhatsApp Image 2026-06-29 at 13.22.44.jpeg",
+      "Irobot Braava Jet M6 Trapeadora Wi Fi /WhatsApp Image 2026-06-29 at 13.22.44 (1).jpeg",
+      "Irobot Braava Jet M6 Trapeadora Wi Fi /WhatsApp Image 2026-06-29 at 13.22.44 (2).jpeg",
+    ]
+  },
+  {
+    name: "iPhone 14 Pro Max",
+    price: "$400.000",
+    badge: "good", badgeText: "Buen estado",
+    desc: "Chip A16, cámara 48 MP, Dynamic Island, pantalla ProMotion 6.7\".",
+    condition: "Funciona de diez: llamadas, cámara y pantalla en perfecto estado. El único detalle es que el vidrio trasero está quebrado, tal como se ve en las fotos.",
+    images: [
+      "iphone 14 pro max/WhatsApp Image 2026-06-29 at 13.32.14.jpeg",
+      "iphone 14 pro max/WhatsApp Image 2026-06-29 at 13.32.14 (1).jpeg",
+      "iphone 14 pro max/WhatsApp Image 2026-06-29 at 13.32.15.jpeg",
+      "iphone 14 pro max/WhatsApp Image 2026-06-29 at 13.32.15 (1).jpeg",
+      "iphone 14 pro max/WhatsApp Image 2026-06-29 at 13.32.15 (2).jpeg",
+    ]
+  },
+  {
+    name: "Apple Watch SE 3 — 40mm",
+    price: "$200.000",
+    badge: "good", badgeText: "Buen estado",
+    desc: "40mm. Actividad, frecuencia cardíaca, detección de caídas. Correa incluida.",
+    condition: "Poco uso, siempre con protector de pantalla. Buen estado general.",
+    images: [
+      "Apple Watch Se 3 40mm/WhatsApp Image 2026-06-29 at 12.56.18.jpeg",
+      "Apple Watch Se 3 40mm/WhatsApp Image 2026-06-29 at 12.56.18 (1).jpeg",
+      "Apple Watch Se 3 40mm/WhatsApp Image 2026-06-29 at 12.56.18 (2).jpeg",
+    ]
+  },
+  {
+    name: "Magic Keyboard — Gris Espacial (ES)",
+    price: "$100.000",
+    badge: "good", badgeText: "Buen estado",
+    desc: "Bluetooth, QWERTY Español, Gris Espacial. Ultra delgado, batería recargable.",
+    condition: "Con uso pero bien tratado. Las teclas están limpias y sin desgaste visible. Funciona al 100%.",
+    images: [
+      "Teclado Bluetooth Apple Qwerty Español Color Gris Espacial/WhatsApp Image 2026-06-29 at 13.38.36.jpeg",
+      "Teclado Bluetooth Apple Qwerty Español Color Gris Espacial/WhatsApp Image 2026-06-29 at 13.38.36 (1).jpeg",
+      "Teclado Bluetooth Apple Qwerty Español Color Gris Espacial/WhatsApp Image 2026-06-29 at 13.38.36 (2).jpeg",
+      "Teclado Bluetooth Apple Qwerty Español Color Gris Espacial/WhatsApp Image 2026-06-29 at 13.38.36 (3).jpeg",
+    ]
+  },
+];
+
+function buildCard(p, idx) {
+  const single = p.images.length === 1;
+  const imgs = p.images.map((src, i) =>
+    `<img src="${enc(src)}" alt="${p.name}" class="${i===0?'active':''}" loading="lazy" />`
+  ).join('');
+  const dots = p.images.map((_, i) =>
+    `<span class="g-dot${i===0?' active':''}"></span>`
+  ).join('');
+  const nav = single ? '' : `
+    <div class="g-nav left"><button onclick="cNav(this,-1,event)">‹</button></div>
+    <div class="g-nav right"><button onclick="cNav(this,1,event)">›</button></div>
+    <div class="g-dots">${dots}</div>`;
+  const msg = encodeURIComponent(`Hola! Me interesa "${p.name}" que publicaste. ¿Sigue disponible?`);
+  const bc = p.badge === 'great' ? 'badge-great' : 'badge-good';
+  return `
+  <div class="card">
+    <div class="gallery${single?' single':''}" data-idx="${idx}" data-cur="0" onclick="galleryClick(this)">
+      ${imgs}${nav}
+      <button class="g-expand" onclick="galleryClick(this.parentElement,event)">⤢</button>
+      <span class="g-hint">Tocá para ampliar</span>
+    </div>
+    <div class="body">
+      <div class="price">${p.price}</div>
+      <div class="name">${p.name}</div>
+      <span class="badge ${bc}">${p.badgeText}</span>
+      <div class="desc">${p.desc}</div>
+      <div class="condition"><strong>Estado:</strong> ${p.condition}</div>
+      <a class="cta" href="https://wa.me/${WP}?text=${msg}" target="_blank" onclick="event.stopPropagation()">💬 Contactar por WhatsApp</a>
+    </div>
+  </div>`;
+}
+
+document.getElementById('grid').innerHTML = products.map(buildCard).join('');
+
+function setSlide(g, n) {
+  const imgs = g.querySelectorAll('img');
+  const dots = g.querySelectorAll('.g-dot');
+  const t = imgs.length;
+  n = (n + t) % t;
+  imgs.forEach((el, i) => el.classList.toggle('active', i === n));
+  dots.forEach((el, i) => el.classList.toggle('active', i === n));
+  g.dataset.cur = n;
+}
+function cNav(btn, dir, e) {
+  e.stopPropagation();
+  const g = btn.closest('.gallery');
+  setSlide(g, +g.dataset.cur + dir);
+}
+function galleryClick(g, e) {
+  if (e) e.stopPropagation();
+  openLb(+g.dataset.idx, +g.dataset.cur);
+}
+
+// Lightbox
+let lbP = 0, lbI = 0;
+function openLb(pi, ii) {
+  lbP = pi; lbI = ii; renderLb();
+  document.getElementById('lb').classList.add('open');
+}
+function renderLb() {
+  const imgs = products[lbP].images;
+  document.getElementById('lb-img').src = enc(imgs[lbI]);
+  const show = imgs.length > 1;
+  document.getElementById('lb-ctr').textContent = show ? `${lbI+1} / ${imgs.length}` : '';
+  document.querySelector('.lb-arrow.prev').style.display = show ? '' : 'none';
+  document.querySelector('.lb-arrow.next').style.display = show ? '' : 'none';
+}
+function closeLb() { document.getElementById('lb').classList.remove('open'); }
+function lbNav(dir) {
+  const t = products[lbP].images.length;
+  lbI = (lbI + dir + t) % t;
+  renderLb();
+}
+
+// Touch – cards
+let tx = 0, tg = null;
+document.getElementById('grid').addEventListener('touchstart', e => { tx = e.touches[0].clientX; tg = e.target.closest('.gallery'); }, {passive:true});
+document.getElementById('grid').addEventListener('touchend', e => {
+  if (!tg || tg.classList.contains('single')) return;
+  const dx = e.changedTouches[0].clientX - tx;
+  if (Math.abs(dx) > 40) { setSlide(tg, +tg.dataset.cur + (dx < 0 ? 1 : -1)); tg = null; }
+}, {passive:true});
+
+// Touch – lightbox
+let ltx = 0;
+document.getElementById('lb').addEventListener('touchstart', e => { ltx = e.touches[0].clientX; }, {passive:true});
+document.getElementById('lb').addEventListener('touchend', e => { const dx = e.changedTouches[0].clientX - ltx; if (Math.abs(dx) > 40) lbNav(dx < 0 ? 1 : -1); }, {passive:true});
+
+document.addEventListener('keydown', e => {
+  if (!document.getElementById('lb').classList.contains('open')) return;
+  if (e.key === 'Escape') closeLb();
+  if (e.key === 'ArrowRight') lbNav(1);
+  if (e.key === 'ArrowLeft') lbNav(-1);
+});
+</script>
+</body>
+</html>
